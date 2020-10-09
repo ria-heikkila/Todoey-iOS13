@@ -10,16 +10,16 @@ import UIKit
 
 class TodoListViewController: UITableViewController {
 
-    var itemArray: [String] = []
+    var itemArray = [Item]()
+    let dataFilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("Items.plist")
     
     //variable to keep data aross app launches
-    let defaults = UserDefaults.standard
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        if let items = defaults.array(forKey: "TodoListArray") as? [String] {
-            itemArray = items
-        }
+        
+        //display items from plist
+        loadItems()
     }
     
     // TableView DataSource Methods
@@ -30,25 +30,27 @@ class TodoListViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
         let cell = tableView.dequeueReusableCell(withIdentifier: "ToDoItemCell", for: indexPath)
-        cell.textLabel?.text = itemArray[indexPath.row]
+        
+        let item = itemArray[indexPath.row]
+        
+        cell.textLabel?.text = item.title
+        
+        //Ternary operator ==> is used instead of long if operator
+        cell.accessoryType = item.done ? .checkmark : .none
         return cell
     }
     
     //TableView Delegate Methods
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         
-        //check if selected row has a checkmark
-        if tableView.cellForRow(at: indexPath)?.accessoryType == .checkmark {
-            //remove checkmark
-            tableView.cellForRow(at: indexPath)?.accessoryType = .none
-        }
-        else{
-            //add checkmark to selected row
-            tableView.cellForRow(at: indexPath)?.accessoryType = .checkmark
-        }
+        //change value of done to display or hide checkmark
+        itemArray[indexPath.row].done = !itemArray[indexPath.row].done
+        //save item data to plist
+        saveItems()
         
         //make the selected row's color white(unselected)
         tableView.deselectRow(at: indexPath, animated: true)
+        tableView.reloadData()
         
     }
     
@@ -61,8 +63,11 @@ class TodoListViewController: UITableViewController {
         
         let action = UIAlertAction(title: "Add Item", style: .default) { (action) in
             //what will happen once the user clicks the Add button on UIAlert
-            self.itemArray.append(textField.text!)
-            self.defaults.set(self.itemArray, forKey: "TodoListArray")
+            let newItem = Item()
+            newItem.title = textField.text!
+            self.itemArray.append(newItem)
+            // save item data to plist
+            self.saveItems()
             self.tableView.reloadData()
         }
         alert.addTextField { (alertTextField) in
@@ -73,6 +78,33 @@ class TodoListViewController: UITableViewController {
         alert.addAction(action)
         present(alert, animated: true, completion: nil)
         
+    }
+    
+    //Model Manipulation Methods
+    
+    //function that saves changes in items to plist
+    func saveItems() {
+        let encoder = PropertyListEncoder()
+        do{
+            let data = try encoder.encode(itemArray)
+            try data.write(to: dataFilePath!)
+        }
+        catch{
+           print(error)
+        }
+    }
+    
+    //function that loads items previously saved to plist
+    func loadItems() {
+        if let data = try? Data(contentsOf: dataFilePath!){
+            let decoder = PropertyListDecoder()
+            do{
+            itemArray = try decoder.decode([Item].self, from: data)
+            }
+            catch{
+                print(error)
+            }
+        }
     }
 }
 
