@@ -9,6 +9,7 @@
 import UIKit
 import CoreData
 import RealmSwift
+import ChameleonFramework
 
 class CategoryViewController: SwipeTableViewController {
     
@@ -27,6 +28,9 @@ class CategoryViewController: SwipeTableViewController {
         tableView.rowHeight = 80.0
         
         loadCategories()
+        
+        //make line between cells invisible
+        tableView.separatorStyle = .none
 
     }
     
@@ -43,13 +47,35 @@ class CategoryViewController: SwipeTableViewController {
         //return categories.count
     }
     
+    override func viewWillAppear(_ animated: Bool) {
+        guard let navBar  = navigationController?.navigationBar else {
+            fatalError("Navigation controller does not exist.")
+        }
+        
+        navBar.backgroundColor = UIColor(hexString: "8E8E92")
+        navBar.largeTitleTextAttributes = [NSAttributedString.Key.foregroundColor : UIColor.white]
+    }
+    
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
         //cell from superclass(already swipable)
         let cell = super.tableView(tableView, cellForRowAt: indexPath)
         
         //Realm
+        if let category = categories?[indexPath.row] {
+           cell.textLabel?.text = category.name
+           cell.backgroundColor = UIColor(hexString: category.cellColor)
+        }
         cell.textLabel?.text = categories?[indexPath.row].name ?? "No Categories Added Yet"
+        if let color = categories?[indexPath.row].cellColor {
+            
+            guard let categoryColor = UIColor(hexString: color) else {
+                fatalError()
+            }
+            
+            cell.backgroundColor = categoryColor
+            cell.textLabel?.textColor = ContrastColorOf(categoryColor, returnFlat: true)
+        }
         //Core Data
         //cell.textLabel?.text = categories[indexPath.row].name
         
@@ -124,6 +150,7 @@ class CategoryViewController: SwipeTableViewController {
             //let newCategory = Category(context: self.context) // CoreData
             let newCategory = Category() //Realm
             newCategory.name = textField.text!
+            newCategory.cellColor = UIColor.randomFlat().hexValue()
             //self.categories.append(newCategory) //Core Data
             //self.commit() //CoreData
             self.save(category: newCategory) //Realm

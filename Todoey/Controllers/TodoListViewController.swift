@@ -8,9 +8,13 @@
 import UIKit
 import CoreData
 import RealmSwift
+import ChameleonFramework
 
 class TodoListViewController: SwipeTableViewController {
 
+    @IBOutlet weak var addButton: UIBarButtonItem!
+    @IBOutlet weak var searchBar: UISearchBar!
+    
     //var itemArray = [Item]() //Core Data
     var todoItems : Results<Item>? //Realm
     var selectedCategory : Category? {
@@ -30,8 +34,26 @@ class TodoListViewController: SwipeTableViewController {
         super.viewDidLoad()
         
         tableView.rowHeight = 70.0
+        tableView.separatorStyle = .none
+        
 //        print(FileManager.default.urls(for: .documentDirectory, in: .userDomainMask))
         
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        
+        if let category = selectedCategory {
+            title = category.name
+            navigationController?.navigationBar.backgroundColor = UIColor(hexString: category.cellColor)
+            
+            if let navBarColor = UIColor(hexString: category.cellColor) {
+                navigationController?.navigationBar.tintColor = ContrastColorOf(navBarColor, returnFlat: true)
+                navigationController?.navigationBar.largeTitleTextAttributes = [NSAttributedString.Key.foregroundColor : ContrastColorOf(navBarColor, returnFlat: true)]
+                addButton.tintColor = ContrastColorOf(navBarColor, returnFlat: true)
+                searchBar.barTintColor = navBarColor
+                searchBar.searchTextField.backgroundColor = .white
+            }
+        }
     }
     
 //MARK:  TableView DataSource Methods
@@ -46,6 +68,11 @@ class TodoListViewController: SwipeTableViewController {
         // Realm
         if let item = todoItems?[indexPath.row] {
             cell.textLabel?.text = item.title
+            if let color = UIColor(hexString: selectedCategory!.cellColor)?.darken(byPercentage:CGFloat(indexPath.row) / CGFloat(todoItems!.count)) {
+                cell.backgroundColor = color
+                cell.textLabel?.textColor = ContrastColorOf(color, returnFlat: true)
+            }
+            
             //Ternary operator ==> is used instead of long if operator
             cell.accessoryType = item.done ? .checkmark : .none
         } else {
